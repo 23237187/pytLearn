@@ -1,0 +1,6 @@
+{
+    "python.pythonPath": "C:\\Anaconda3\\envs\\tensorflow\\python.exe",
+    "python.jediEnabled": false,
+    "python.linting.enabled": false,
+    "workbench.colorTheme": "Atom One Dark"
+}
