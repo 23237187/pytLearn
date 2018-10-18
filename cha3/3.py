@@ -265,3 +265,157 @@ b = t.zeros(2, 3, 1)
 #               即：a.unsqueeze(0)，a的形状变成（1，3，2），b的形状是（2，3，1）,
 # 第二步:   a和b在第一维和第三维形状不一样，其中一个为1 ，
 #               可以利用广播法则扩展，两个形状都变成了（2，3，2）
+a+b
+
+# 手动广播法则
+# 或者 a.view(1,3,2).expand(2,3,2)+b.expand(2,3,2)
+a[None].expand(2, 3, 2) + b.expand(2, 3, 2)
+
+# expand不会占用额外空间，只会在需要的时候才扩充，可极大节省内存
+e = a.unsqueeze(0).expand(10000000000000, 3,2)
+
+a = t.arange(0, 6)
+a.storage()
+
+b = a.view(2, 3)
+b.storage()
+
+# 一个对象的id值可以看作它在内存中的地址
+# storage的内存地址一样，即是同一个storage
+id(b.storage()) == id(a.stroage())
+
+# a改变，b也随之改变，因为他们共享storage
+a[1] = 100
+b
+
+c = a[2:]
+c.storage()
+
+c.data_ptr(), a.data_ptr() # data_ptr返回tensor首元素的内存地址
+# 可以看出相差8，这是因为2*4=8--相差两个元素，每个元素占4个字节(float)
+
+d = t.Tensor(c.storage())
+d[0] = 6666
+b
+
+# 下面４个tensor共享storage
+id(a.storage()) == id(b.storage()) == id(c.storage()) == id(d.storage())
+
+a.storage_offset(), c.storage_offset(), d.storage_offset()
+
+e = b[::2,::2]# 隔2行/列取一个元素
+id(e.storage()) == id(a.storage())
+
+b.stride(), e.stride()
+e.is_contiguous()
+
+a = t.randn(3, 4)
+a.device
+
+if t.cuda.is_available():
+    a = t.randn(3, 4, device=t.device("cuda:1"))
+     # 等价于
+    # a.t.randn(3,4).cuda(1)
+    # 但是前者更快
+    a.device
+
+device = t.device('cpu')
+a.to(device)
+
+if t.cuda.is_available():
+    a = a.cuda(1) # 把a转为GPU1上的tensor,
+    t.save(a, 'a.pth')
+
+    # 加载为b, 存储于GPU1上(因为保存时tensor就在GPU1上)
+    b = t.load('a.pth')
+    # 加载为c, 存储于CPU
+    c = t.load('a.pth', map_location=lambda storage, loc: storage)
+    # 加载为d, 存储于GPU0上
+    d = t.load('a.pth', map_location={'cuda:1':'cuda:0'})
+
+
+def for_loop_add(x, y):
+    result = []
+    for i, j in zip(x, y):
+        result.append(i + j)
+    return t.Tensor(result)
+
+x = t.zeros(100)
+y = t.ones(100)
+%timeit -n  10  for_loop_add(x,y)
+%timeit -n  10  x + y
+
+a = t.arange(0, 20000000)
+print(a[-1], a[-2]) # 32bit的IntTensor精度有限导致溢出
+b = t.LongTenor()
+t.arangr(0, 20000000, out=b) # 64bit的LongTensor不会溢出
+b[-1],b[-2]
+
+a = t.randn(2, 3)
+a
+
+t.set_printoptions(precision=10)
+a
+
+import torch as t
+%matplotlib inline
+from matplotlib import pyplot as plt
+from IPython import display
+
+device = t.device('cpu')
+
+# 设置随机数种子，保证在不同电脑上运行时下面的输出一致
+t.manual_seed(1000)
+
+def get_fake_data(batch_size=8):
+     ''' 产生随机数据：y=x*2+3，加上了一些噪声'''
+     x = t.rand(batch_size, device=device) * 5
+     y = x * 2 + 3 + t.randn(batch_size, 1, device=device)
+     return x, y
+
+# 来看看产生的x-y分布
+x, y = get_fake_data(batch_size=16)
+plt.scatter(x.squeeze().cpu().numpy(), y.squeeze().cpu().numpy())
+
+# 随机初始化参数
+w = t.rand(1, 1).to(device)
+b = t.zeros(1, 1).to(device)
+
+lr = 0.02  # 学习率
+
+for ii in range(500):
+    x, y = get_fake_data(batch_size=4)
+
+    # forward：计算loss
+    y_pred = x.mm(w) + b.expand_as(y)
+    loss = 0.5 * (y_pred - y) ** 2 # 均方误差
+    loss = loss.mean()
+
+    # backward：手动计算梯度
+    dloss = 1
+    dy_pred = dloss * (y_pred - y)
+
+    dw = x.t().mm(dy_pred)
+    db = dy_pred.sum()
+
+    # 更新参数
+    w.sub_(lr * dw)
+    b.sub_(lr * db)
+    
+    if ii%50 ==0:
+       
+        # 画图
+        display.clear_output(wait=True)
+        x = t.arange(0, 6).view(-1, 1)
+        y = x.mm(w) + b.expand_as(x)
+        plt.plot(x.cpu().numpy(), y.cpu().numpy()) # predicted
+        
+        x2, y2 = get_fake_data(batch_size=32) 
+        plt.scatter(x2.numpy(), y2.numpy()) # true data
+        
+        plt.xlim(0, 5)
+        plt.ylim(0, 13)
+        plt.show()
+        plt.pause(0.5)
+        
+print('w: ', w.item(), 'b: ', b.item())
