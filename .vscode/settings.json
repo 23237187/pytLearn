@@ -1,6 +1,4 @@
 {
-    "python.pythonPath": "C:\\Anaconda3\\envs\\tensorflow\\python.exe",
-    "python.jediEnabled": false,
-    "python.linting.enabled": false,
-    "workbench.colorTheme": "Atom One Dark"
+    "python.pythonPath": "C:\\Users\\WinterIsComing\\Anaconda3\\envs\\deeplearning\\python.exe",
+    "python.jediEnabled": false
 }
