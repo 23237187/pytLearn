@@ -1,4 +1,4 @@
 {
-    "python.pythonPath": "C:\\Users\\WinterIsComing\\Anaconda3\\envs\\deeplearning\\python.exe",
-    "python.jediEnabled": false
+    "python.pythonPath": "E:\\Lib\\Anaconda3\\envs\\pytorch\\python.exe",
+    // "python.jediEnabled": false
 }
